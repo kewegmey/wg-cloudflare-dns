@@ -1,0 +1,13 @@
+[Unit]
+Description=WireGuard Cloudflare DNS updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/wg-cloudflare-dns -config /etc/wg-cloudflare-dns/config.yaml -interface wg0
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

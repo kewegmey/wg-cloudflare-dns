@@ -1,0 +1,9 @@
+cloudflare:
+  api_token: "your-api-token"
+  zone_id: "your-zone-id"
+
+peers:
+  - public_key: "peer-public-key"
+    dns_name: "peer.example.com"
+
+update_interval: "5m"
