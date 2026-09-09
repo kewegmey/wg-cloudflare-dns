@@ -41,7 +41,7 @@ func main() {
 				continue
 			}
 
-			if err := client.UpsertARecord(context.Background(), peer.DNSName, ip); err != nil {
+			if err := client.UpsertDNSRecord(context.Background(), peer.DNSName, ip); err != nil {
 				log.Printf("failed updating %s to %s: %v", peer.DNSName, ip, err)
 				continue
 			}

@@ -22,13 +22,25 @@ func NewCloudflareClient(apiToken, zoneID string) (*CloudflareClient, error) {
 	return &CloudflareClient{api: api, zoneID: zoneID}, nil
 }
 
-func (c *CloudflareClient) UpsertARecord(ctx context.Context, name, ip string) error {
-	if net.ParseIP(ip) == nil {
-		return fmt.Errorf("invalid IP address: %s", ip)
+func recordTypeForIP(ip string) (string, error) {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return "", fmt.Errorf("invalid IP address: %s", ip)
+	}
+	if parsed.To4() != nil {
+		return "A", nil
+	}
+	return "AAAA", nil
+}
+
+func (c *CloudflareClient) UpsertDNSRecord(ctx context.Context, name, ip string) error {
+	recordType, err := recordTypeForIP(ip)
+	if err != nil {
+		return err
 	}
 
 	records, _, err := c.api.ListDNSRecords(ctx, cloudflare.ZoneIdentifier(c.zoneID), cloudflare.ListDNSRecordsParams{
-		Type: "A",
+		Type: recordType,
 		Name: name,
 	})
 	if err != nil {
@@ -36,7 +48,7 @@ func (c *CloudflareClient) UpsertARecord(ctx context.Context, name, ip string) e
 	}
 
 	for _, record := range records {
-		if record.Name != name || record.Type != "A" {
+		if record.Name != name || record.Type != recordType {
 			continue
 		}
 
@@ -46,7 +58,7 @@ func (c *CloudflareClient) UpsertARecord(ctx context.Context, name, ip string) e
 
 		_, err := c.api.UpdateDNSRecord(ctx, cloudflare.ZoneIdentifier(c.zoneID), cloudflare.UpdateDNSRecordParams{
 			ID:      record.ID,
-			Type:    "A",
+			Type:    recordType,
 			Name:    name,
 			Content: ip,
 			TTL:     record.TTL,
@@ -61,7 +73,7 @@ func (c *CloudflareClient) UpsertARecord(ctx context.Context, name, ip string) e
 
 	proxied := false
 	_, err = c.api.CreateDNSRecord(ctx, cloudflare.ZoneIdentifier(c.zoneID), cloudflare.CreateDNSRecordParams{
-		Type:    "A",
+		Type:    recordType,
 		Name:    name,
 		Content: ip,
 		TTL:     1,
